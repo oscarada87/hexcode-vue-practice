@@ -146,7 +146,11 @@
 </div>
 
 <div id="app">
-  
+  <ul>
+    <li v-for="item in list" v-if="item.age < 25">
+      {{ item.name }}年齡是 {{ item.age }} 歲
+    </li>
+  </ul>
 </div>
 
 <script>
