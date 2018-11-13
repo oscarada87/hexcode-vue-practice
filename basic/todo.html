@@ -150,59 +150,49 @@
     <div class="input-group-prepend">
       <span class="input-group-text" id="basic-addon1">待辦事項</span>
     </div>
-    <input type="text" class="form-control" placeholder="準備要做的任務" v-model="newTodo" @keyup.enter="addTodo">
+    <input type="text" class="form-control" placeholder="準備要做的任務" v-model="newTodo" @keyup.enter="addTodo()">
     <div class="input-group-append">
-      <button class="btn btn-primary" type="button" @click="addTodo">新增</button>
+      <button class="btn btn-primary" type="button" @click="addTodo()">新增</button>
     </div>
   </div>
   <div class="card text-center">
     <div class="card-header">
       <ul class="nav nav-tabs card-header-tabs">
         <li class="nav-item">
-          <a class="nav-link active" href="#">全部</a>
+          <a class="nav-link" :class="{'active': visibility == 'all'}" @click="visibility = 'all'" href="#">全部</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link " href="#">進行中</a>
+          <a class="nav-link " :class="{'active': visibility == 'doing'}" @click="visibility = 'doing'" href="#">進行中</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="#">已完成</a>
+          <a class="nav-link" :class="{'active': visibility == 'done'}" @click="visibility = 'done'" href="#">已完成</a>
         </li>
       </ul>
     </div>
     <ul class="list-group list-group-flush text-left">
-      <li class="list-group-item" v-for="item in todos">
-        <div class="d-flex">
+      <li class="list-group-item" v-for="item in filteredTodos" @dblclick="editTodo(item)">
+        <div class="d-flex" v-if="item.id !== cacheTodo.id">
           <div class="form-check">
             <input type="checkbox" class="form-check-input" v-model="item.completed" :id="item.id">
-            <label class="form-check-label" :for="item.id">
+            <label class="form-check-label" 
+              :class="{'completed': item.completed}"
+              :for="item.id">
               {{ item.title }}
             </label>
           </div>
-          <button type="button" class="close ml-auto" aria-label="Close">
+          <button type="button" class="close ml-auto" aria-label="Close" @click="removeTodo(item)">
             <span aria-hidden="true">&times;</span>
           </button>
         </div>
-      </li>
-      <!-- <li class="list-group-item">
-        <div class="d-flex">
-          <div class="form-check">
-            <input type="checkbox" class="form-check-input" id="a1">
-            <label class="form-check-label completed" for="a1">
-              Cras justo odio
-            </label>
-          </div>
-          <button type="button" class="close ml-auto" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
-          </button>
-        </div>
-      </li> -->
-      <li class="list-group-item">
-        <input type="text" class="form-control">
+        <input type="text" class="form-control" v-if="item.id === cacheTodo.id" 
+          v-model="cacheTitle" 
+          @keyup.esc="cancelEdit()"
+          @keyup.enter="doneEdit(item)">
       </li>
     </ul>
     <div class="card-footer d-flex justify-content-between">
-      <span>還有 3 筆任務未完成</span>
-      <a href="#">清除所有任務</a>
+      <span>還有 {{ doingTodosCount }} 筆任務未完成</span>
+      <a href="#" @click="clearAllTodos()">清除所有任務</a>
     </div>
   </div>
 </div>
@@ -219,17 +209,82 @@ var app = new Vue({
         completed: false
       }
     ],
+    cacheTodo: {},
+    cacheTitle: '',
+    visibility: 'all'
   },
   methods: {
     addTodo: function(){
-      var value = this.newTodo;
+      var value = this.newTodo.trim();
       var timestamp = Math.floor(Date.now());
+      if (!value){
+        return;
+      }
       this.todos.push({
         id: timestamp,
         title: value,
         completed: false
       })
       this.newTodo = '';
+    },
+
+    removeTodo: function(todo){
+      var correctIndex = this.todos.findIndex(function (item, key){
+        return todo.id === item.id;
+      })
+      this.todos.splice(correctIndex, 1);
+    },
+
+    editTodo: function(item){
+      this.cacheTodo = item;
+      this.cacheTitle = item.title;
+    },
+
+    cancelEdit: function(){
+      this.cacheTodo = {};
+    },
+
+    doneEdit: function(item){
+      item.title = this.cacheTitle;
+      this.cacheTitle = '';
+      this.cacheTodo = {};
+    },
+    clearAllTodos: function(){
+      this.todos = [];
+    }
+  },
+  computed: {
+    filteredTodos: function(){
+      if (this.visibility == 'all'){
+        return this.todos;
+      }
+      else if (this.visibility == 'doing'){
+        var doingTodos = [];
+        this.todos.forEach(function (item){
+          if (!item.completed){
+            doingTodos.push(item);
+          }
+        })
+        return doingTodos;
+      }
+      else if (this.visibility == 'done'){
+        var doneTodos = [];
+        this.todos.forEach(function (item){
+          if (item.completed){
+            doneTodos.push(item);
+          }
+        })
+        return doneTodos;
+      }     
+    },
+    doingTodosCount: function(){
+      var doingTodos = [];
+      this.todos.forEach(function (item){
+        if (!item.completed){
+          doingTodos.push(item);
+        }
+      })
+      return doingTodos.length;
     }
   }
 });
@@ -240,7 +295,7 @@ var app = new Vue({
   text-decoration: line-through
 }
 </style>
- 
+
         </div>
       </div>
     </div>
